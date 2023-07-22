@@ -17,11 +17,13 @@ PROPS = [
     ('replay_file', bpy.props.StringProperty(name='Processed Replay File Path', default='/tmp/replay.osr')),
     ('video_file_directory', bpy.props.StringProperty(name='Video File Directory', default='/tmp/')),
     ('video_file_name', bpy.props.StringProperty(name='Video File Name', default='file.mp4')),
+    ('aim', bpy.props.BoolProperty(name='Aiming', default=True)),
     ('tapx', bpy.props.BoolProperty(name='TapX', default=False)),
+    ('tap_bitmask', bpy.props.IntProperty(name='TapX', default=31)),
 ]
 
 class SamplePanel(bpy.types.Panel):
-    """ Displayy panel in 3D view"""
+    """ Display panel in 3D view"""
     bl_label = "osu Replay Animator"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -50,7 +52,11 @@ class GenerateOsuReplayKeyframes(bpy.types.Operator):
         generator = Generator()
         generator.generateAssembly()
         generator.setData(read_replay_file(context.scene.replay_file))
-        generator.generateKeyframes(context.scene.tapx)
+        generator.generateKeyframes(
+            context.scene.aim, 
+            context.scene.tapx,
+            context.scene.tap_bitmask
+        )
         generator.linkVideoToPlane(
             context.scene.video_file_name,
             context.scene.video_file_directory

@@ -7,21 +7,16 @@ class Generator:
         self.scale_factor = 1/1000
         self.cursor_scale = (0.005, 0.005, 0.005)
         self.dimensions = (512, 384) # for the playfield
+        self.tap_bitmask = 31 # default all on
         
         xtransform = lambda x : x * self.scale_factor
         ytransform = lambda y : (self.dimensions[1] - y) * self.scale_factor # Flip direction
-        ztransform = lambda z : 0 if z > 0.4 else 0.4
+        ztransform = lambda z : 0 if (z & self.tap_bitmask) > 0 else 0.4
         self.modes = {
-          "aim_only": {
-            "xtransform": xtransform, 
-            "ytransform": ytransform, 
-            "ztransform": lambda z : 0, 
-          },
-          "aim_tapx": {
-            "xtransform": xtransform, 
-            "ytransform": ytransform, 
-            "ztransform": ztransform, 
-          },
+          "x_aim": xtransform, 
+          "y_aim": ytransform, 
+          "z_tapall": ztransform,
+          "none": lambda z : 0
         }
     
     ### Class Methods to Handle Data ###########################################################
@@ -94,11 +89,16 @@ class Generator:
     def setData(self, data):
         self.replay_data = data
         
-    def generateKeyframes(self, tapx):
+    def generateKeyframes(self, aim=True, tapx=False, tap_bitmask=31):
+        self.tap_bitmask = tap_bitmask
         #bpy.context.view_layer.objects.active = self.cursor
         time_counter = 0 # Time passed in milliseconds
         
-        mode = self.modes["aim_only" if tapx==False else "aim_tapx"]
+        mode = {
+            "xtransform": self.modes["x_aim"] if aim else self.modes["none"],
+            "ytransform": self.modes["y_aim"] if aim else self.modes["none"], 
+            "ztransform": self.modes["none"] if tapx==False else self.modes["z_tapall"]  
+        }
         for i in range(len(self.replay_data)):
             #i - len(data) // 2
             time_counter += self.replay_data[i][2]
