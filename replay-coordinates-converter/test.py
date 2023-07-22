@@ -1,6 +1,8 @@
 from osrparse import Replay, parse_replay_data
+# pip3 install osrparse
+
 # parse from a path
-replay = Replay.from_path("replay.osr")
+replay = Replay.from_path("../replay.osr")
 
 # a replay has various attributes
 r = replay
