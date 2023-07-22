@@ -7,6 +7,22 @@ class Generator:
         self.scale_factor = 1/1000
         self.cursor_scale = (0.005, 0.005, 0.005)
         self.dimensions = (512, 384) # for the playfield
+        
+        xtransform = lambda x : x * self.scale_factor
+        ytransform = lambda y : (self.dimensions[1] - y) * self.scale_factor # Flip direction
+        ztransform = lambda z : 0 if z > 0.4 else 0.4
+        self.modes = {
+          "aim_only": {
+            "xtransform": xtransform, 
+            "ytransform": ytransform, 
+            "ztransform": lambda z : 0, 
+          },
+          "aim_tapx": {
+            "xtransform": xtransform, 
+            "ytransform": ytransform, 
+            "ztransform": ztransform, 
+          },
+        }
     
     ### Class Methods to Handle Data ###########################################################
     def add_keyframe(obj, x, y, z, frame):
@@ -71,24 +87,26 @@ class Generator:
         self.plane.parent = self.replayObj
         self.planeVideo.parent = self.replayObj
 
-    def readData(self, filename):
+    def readDataFromFile(self, filename):
         with open(filename) as f:
-            self.replay_data = eval(f.read())
-
-    def generateKeyframes(self):
+            self.setData(eval(f.read()))
+            
+    def setData(self, data):
+        self.replay_data = data
+        
+    def generateKeyframes(self, tapx):
         #bpy.context.view_layer.objects.active = self.cursor
         time_counter = 0 # Time passed in milliseconds
-        xtransform = lambda x : x * self.scale_factor
-        ytransform = lambda y : (self.dimensions[1] - y) * self.scale_factor # Flip direction
-        ztransform = lambda z : 1 #0 if z > 0 else -0.4
+        
+        mode = self.modes["aim_only" if tapx==False else "aim_tapx"]
         for i in range(len(self.replay_data)):
             #i - len(data) // 2
             time_counter += self.replay_data[i][2]
             Generator.add_keyframe(
                 self.cursor,
-                xtransform(self.replay_data[i][0]), 
-                ytransform(self.replay_data[i][1]),
-                ztransform(self.replay_data[i][3]),
+                mode["xtransform"](self.replay_data[i][0]), 
+                mode["ytransform"](self.replay_data[i][1]),
+                mode["ztransform"](self.replay_data[i][3]),
                 (time_counter / 1000) / (1/60) # current frame
             )
             #print(i, data[i][0], data[i][1], time_counter / 1000 * 50) 
@@ -112,15 +130,8 @@ class Generator:
         
         node_texture = video_mat_nodes.new(type='ShaderNodeTexImage')
         node_texture.image = bpy.data.images[filename]
-        '''
-        MAX = 1000000000000
-        for i in range(MAX):
-            try:
-                node_texture.image_user.frame_duration = MAX-i # Max
-                break
-            except Exception as e:
-                print(e)
-        ''' 
+        MAX = 1048574
+        node_texture.image_user.frame_duration = MAX # Currently not working
         node_texture.image_user.frame_offset = 217 # Hardcoded
         node_texture.image_user.use_auto_refresh = True # Loop Through Video
                 

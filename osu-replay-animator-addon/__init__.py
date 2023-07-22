@@ -8,14 +8,16 @@ import bpy
 import bpy.ops
 from bpy import context
 from .generator import Generator
+from .read_replay_file import read_replay_file
 
 ### Blender Addon Code #############################################################
 
 # == GLOBAL VARIABLES
 PROPS = [
-    ('processed_replay_file', bpy.props.StringProperty(name='Processed Replay File Path', default='./data.txt')),
-    ('video_file_directory', bpy.props.StringProperty(name='Video File Directory', default='./')),
+    ('replay_file', bpy.props.StringProperty(name='Processed Replay File Path', default='/tmp/replay.osr')),
+    ('video_file_directory', bpy.props.StringProperty(name='Video File Directory', default='/tmp/')),
     ('video_file_name', bpy.props.StringProperty(name='Video File Name', default='file.mp4')),
+    ('tapx', bpy.props.BoolProperty(name='TapX', default=False)),
 ]
 
 class SamplePanel(bpy.types.Panel):
@@ -45,21 +47,14 @@ class GenerateOsuReplayKeyframes(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}  # Enable undo for the operator.
     
     def execute(self, context):        # execute() is called when running the operator.        
-        params = (
-            context.scene.processed_replay_file,
-            context.scene.video_file_directory,
-            context.scene.video_file_name,
-        )
-        
         generator = Generator()
         generator.generateAssembly()
-        generator.readData(params[0])
-        generator.generateKeyframes()
+        generator.setData(read_replay_file(context.scene.replay_file))
+        generator.generateKeyframes(context.scene.tapx)
         generator.linkVideoToPlane(
-            params[2],
-            params[1]
+            context.scene.video_file_name,
+            context.scene.video_file_directory
         )
-
         return {'FINISHED'}            # Lets Blender know the operator finished successfully.
 
 
@@ -91,10 +86,3 @@ def unregister():
 # to test the add-on without having to install it.
 if __name__ == "__main__":
     register()
-    '''
-    generator = Generator()
-    generator.generateAssembly()
-    generator.readData("/run/media/hacker/Windows/Users/zunmu/Documents/Stuff/Github/PERSONAL PROJECTS/osu-replay-blender-animator/replay-coordinates-converter/data.txt")
-    generator.generateKeyframes()
-    generator.linkVideoToPlane("render1250840.mp4", "/run/media/hacker/Windows/Users/zunmu/Documents/Stuff/Github/PERSONAL PROJECTS/osu-replay-blender-animator/")
-    '''
